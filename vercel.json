@@ -1,0 +1,8 @@
+{
+  "framework": null,
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "headers": [
+    { "source": "/data.json", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+  ]
+}
