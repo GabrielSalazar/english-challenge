@@ -91,7 +91,8 @@
   },
   "2026-10-11": {
    "c": {
-    "SHORT_VIDEO": true
+    "SHORT_VIDEO": true,
+    "SHORT_VIDEO:o0": true
    },
    "t": {
     "SHORT_VIDEO": "How to explain something complicated\nhttps://www.youtube.com/watch?v=EMbZ72cCAzI\n\nThe main idea is to break the concepts in parts, part by part, step by step, building the whole complicated concept."
