@@ -131,6 +131,8 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:24px;
 .opt-tag{font-family:var(--f-mono);font-size:10px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 5px;margin-left:6px;white-space:nowrap}
 textarea{width:100%;min-height:120px;resize:vertical;font:15px/1.55 var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
 textarea.small{min-height:70px}
+.ro-text{font:15px/1.55 var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+mark.hl{background:var(--w);color:var(--w-ink);font-weight:700;border-radius:4px;padding:0 2px}
 .count{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:6px}
 .meter{flex:1;height:5px;background:var(--line);border-radius:5px;overflow:hidden;align-self:center;max-width:220px}
 .meter i{display:block;height:100%;background:var(--ok);border-radius:5px}
@@ -214,7 +216,7 @@ const T={
  WT103:{s:'w',t:'The object of the day',d:'Write 125 words describing the "most-or-least important" object of the day. Include features, purposes, and prices.',words:125,tip:'Vocabulário útil: lightweight, durable, it costs around…, it\'s meant for…'},
  WT104:{s:'w',t:'The place of the day',d:'Write 125 words describing the "most-or-least important" place of the day. Include features, purposes, and how often you are there.',words:125,tip:'Advérbios de frequência: hardly ever, once in a while, on a daily basis.'},
  WT105:{s:'w',t:'The person of the day',d:'Write 250 words introducing the "most-or-least important" person of the day. Follow the instructions at WT101.',words:250,tip:'Personal info, background, routine e objetivos dessa pessoa. Use terceira pessoa (he/she works, lives, wants…).'},
- WT106:{s:'w',t:'Compare two objects',d:'Write 250 words comparing two of the "most-or-least important" objects of the day. Follow the instructions at WT103.',words:250,tip:'Comparativos: whereas, while, on the other hand, far more…than, not as…as.'},
+ WT106:{s:'w',t:'Compare two objects',d:'Write 250 words comparing two of the "most-or-least important" objects of the day. Follow the instructions at WT103.',words:250,tip:'Comparativos: whereas, while, on the other hand, far more…than, not as…as.',hl:/\b(?:whereas|while|on the other hand|far more\b[^.;:!?]*?\bthan|not as\b[^.;:!?]*?\bas)\b/gi},
  WT107:{s:'w',t:'Compare two places',d:'Write 250 words comparing two of the "most-or-least important" places of the day. Follow the instructions at WT104.',words:250,tip:'Compare função, ambiente e frequência. Termine com qual você prefere e por quê.'},
  WT108:{s:'w',t:'Compare two people',d:'Write 500 words comparing two of the "most-or-least important" people of the day. Follow the instructions at WT101.',words:500,tip:'Estruture em 4 blocos: background, rotina, objetivos, o que você aprende com cada um.'},
  WT201:{s:'w',t:'One new word every hour',d:'Record at least one new word during every hour of your day. DON\'T do all that at once. Record one word after another, hour by hour.',sub:HOURS,area:'Suas palavras (uma por linha, com a hora)',tip:'Marque cada hora quando registrar a palavra. Anote também um exemplo de uso.'},
@@ -450,6 +452,8 @@ function renderGrid(){
 }
 function shortName(id){return {READ_NEWS:'READ',LISTEN_NEWS:'NEWS',SONG:'SONG',SHORT_VIDEO:'VIDEO',PODCAST:'POD',LONG_VIDEO:'VIDEO+',QUIZ:'QUIZ',ST_REVIEW:'ST REV',PLACEMENT:'TEST'}[id]||id}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+// escapes s and wraps each match of re (a /g regex) in <mark class="hl">
+function hlText(s,re){let out='',i=0; String(s).replace(re,(m,off)=>{out+=esc(s.slice(i,off))+`<mark class="hl">${esc(m)}</mark>`; i=off+m.length; return m}); return out+esc(s.slice(i))}
 function chk(key,label,cls){const on=!!st(sel).c[key]; return `<label class="chk ${cls||''}"><input type="checkbox" id="c-${sel}-${key}" data-k="${key}" ${on?'checked':''} ${readOnly?'disabled':''}><span class="box">${CHECK}</span>${label?`<span>${label}</span>`:''}</label>`}
 function renderDay(){
   const d=sel, ids=SCHED[d], dt=new Date(d+'T12:00:00'), idx=DATES.indexOf(d)+1, s=st(d), stt=dayStatus(d);
@@ -475,7 +479,11 @@ function renderDay(){
     const areaLabel = t.words ? `Seu texto · meta ${t.words} palavras` : (t.area || (t.s==='s'?'Roteiro ou transcrição (opcional)':null));
     if(areaLabel){
       const val=s.t[id]||''; const w=words(val);
-      h+=`<div><label class="label" for="t-${d}-${id}">${esc(areaLabel)}</label><textarea id="t-${d}-${id}" data-t="${id}" ${readOnly?'readonly':''} class="${t.words&&t.words>=250?'':'small'}" placeholder="${t.words?'Start writing here…':'Escreva aqui…'}">${esc(val)}</textarea>
+      // read-only with highlight terms: a div instead of a textarea, since a textarea can't style words
+      const field = readOnly&&t.hl&&val
+        ? `<div id="t-${d}-${id}" class="ro-text">${hlText(val,t.hl)}</div>`
+        : `<textarea id="t-${d}-${id}" data-t="${id}" ${readOnly?'readonly':''} class="${t.words&&t.words>=250?'':'small'}" placeholder="${t.words?'Start writing here…':'Escreva aqui…'}">${esc(val)}</textarea>`;
+      h+=`<div><label class="label" for="t-${d}-${id}">${esc(areaLabel)}</label>${field}
       <div class="count"><span data-wc="${id}">${w} palavras${t.words?` de ${t.words}`:''}</span>${t.words?`<span class="meter"><i data-wm="${id}" style="width:${Math.min(100,w/t.words*100)}%"></i></span>`:''}</div></div>`;
     }
     h+=`</div></article>`;
